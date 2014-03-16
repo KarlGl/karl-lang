@@ -3,18 +3,10 @@
   evaluates each item, and produces the output code to run in js with evaluator.
 */
 
+var nativeFunctions = require('./native_functions');
 var _ = require('../bower_components/lodash/dist/lodash');
 var l = function(c) {
     console.log(c)
-}
-var nativeFunctions = {
-    double: function(args) {
-        return "(" + args + " * 2)"
-    },
-    addition: function(args) {
-        args = eval(args)
-        return args.left + " + " + args.right + ""
-    }
 }
 var throwIfFalse = function(test, msg) {
     if (!test) {
@@ -36,7 +28,7 @@ exports.eval = function(tree) {
         if (leaf.type === 'expression') {
             var lhs = throwIfFalse(leaf.body[0], "Expression had no function name (first part).")
             var rhs = throwIfFalse(leaf.body[2], "Expression had no arguments to evaluate the function with (second part).")
-            return throwIfFalse(nativeFunctions[evalLeaf(lhs)], 'No function by the name of ' + lhs)(evalLeaf(rhs))
+            return throwIfFalse(nativeFunctions.functions[evalLeaf(lhs)], 'No function by the name of ' + lhs)(evalLeaf(rhs))
         }
         if (leaf.type === 'hash') {
             var hash = {}
@@ -52,7 +44,9 @@ exports.eval = function(tree) {
 
             return "Object({" + _.reduce(_.zip(keys, vals),
                 function(ac, pair) {
-                    return ac.concat(pair[0] + ": " + pair[1])
+                    throwIfFalse(pair[0], "No lhs of hash")
+                    throwIfFalse(pair[1], "No rhs of hash")
+                    return ac.concat(evalLeaf(pair[0]) + ": " + evalLeaf(pair[1]))
                 }, []).join(",") + "});"
         }
         return null;
